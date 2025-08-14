@@ -1,4 +1,4 @@
-package main
+package psi
 
 import "testing"
 
@@ -101,7 +101,7 @@ func TestParsePSIFile(t *testing.T) {
 	var psi *Pressure
 	var err error
 
-	psi, err = ReadPressureFile("test/cpu.1")
+	psi, err = ReadPressureFile("../../test/cpu.1")
 
 	if err == nil {
 		if psi != nil {

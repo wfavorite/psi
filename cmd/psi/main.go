@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/wfavorite/psi/pkg/psi"
 )
 
 /* ======================================================================== */
@@ -37,7 +39,7 @@ func main() {
 	// STUB: Consider creating and calling on an args struct.
 	// STUB: Or something.
 
-	cpuPSI, err := ReadPressureFile("/proc/pressure/cpu")
+	cpuPSI, err := psi.ReadPressureFile("/proc/pressure/cpu")
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: Failed to read cpu - %s\n", err.Error())
