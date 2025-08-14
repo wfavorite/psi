@@ -1,3 +1,4 @@
+// Package main implements the psi utility.
 package main
 
 import (
@@ -43,19 +44,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	jdata, err := json.MarshalIndent(cpuPSI, "", "  ")
+	if cmdl.OptJSON {
+		jdata, err := json.MarshalIndent(cpuPSI, "", "  ")
 
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: Failed to marshall data - %s\n", err.Error())
-		os.Exit(1)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: Failed to marshall data - %s\n", err.Error())
+			os.Exit(1)
+		}
+
+		fmt.Println(string(jdata))
+		os.Exit(0)
 	}
 
-	fmt.Println(string(jdata))
 	os.Exit(0)
 }
 
 /* ======================================================================== */
 
+// HandleAbout prints the standard about information to stdout.
 func HandleAbout() {
 	fmt.Println("psi - Pressure reporter")
 
@@ -63,6 +69,7 @@ func HandleAbout() {
 
 /* ======================================================================== */
 
+// HandleUsage prints the standard help/usage information to stdout.
 func HandleUsage() {
 	fmt.Println("psi - Pressure reporter")
 	fmt.Println("  Usage: psi <options> <int>")

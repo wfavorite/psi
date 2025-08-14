@@ -10,6 +10,7 @@ import (
 
 /* ------------------------------------------------------------------------ */
 
+// PressureLine is one of the two lines in a standard pressure file.
 type PressureLine struct {
 	Avg10  float64
 	Avg60  float64
@@ -19,6 +20,7 @@ type PressureLine struct {
 
 /* ------------------------------------------------------------------------ */
 
+// Pressure models all the data in a pressure file.
 type Pressure struct {
 	Some PressureLine
 	Full PressureLine
@@ -26,21 +28,28 @@ type Pressure struct {
 
 /* ------------------------------------------------------------------------ */
 
-// STUB: Rename this.
-
+// Interval is the type backing the enum for which avg entry was parsed.
 type Interval int
 
 /* ------------------------------------------------------------------------ */
 
 const (
+	// AvgUnk is the uninitialized or error case when parsing an avgNN entry.
 	AvgUnk Interval = iota
+
+	// Avg10 is the first average entry on a pressure file line.
 	Avg10
+
+	// Avg60 is the second average entry on a pressure file line.
 	Avg60
+
+	// Avg300 is the third average entry on a pressure file line.
 	Avg300
 )
 
 /* ======================================================================== */
 
+// String satisfies the Stringer interface for the Interval type.
 func (interval Interval) String() (str string) {
 
 	switch interval {

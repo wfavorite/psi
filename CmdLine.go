@@ -75,6 +75,8 @@ func parseCommandLine(args []string) (cmdl *CmdLine, err error) {
 
 /* ======================================================================== */
 
+// ValidateArgs is used to check for invalid combinations of command line
+// arguments.
 func (cmdl *CmdLine) ValidateArgs() (err error) {
 
 	if cmdl == nil {
@@ -93,6 +95,21 @@ func (cmdl *CmdLine) ValidateArgs() (err error) {
 	if cmdl.OptAbout {
 		if cmdl.OptUsage || cmdl.OptJSON || cmdl.ArgInterval > 0 {
 			cmdl.Error = "The -a option is mutually exclusive of all other options"
+			return
+		}
+	}
+
+	if cmdl.OptUsage {
+		if cmdl.OptJSON || cmdl.ArgInterval > 0 {
+			cmdl.Error = "The -h option is mutually exclusive of all other options"
+			return
+		}
+	}
+
+	if cmdl.OptJSON {
+		if cmdl.ArgInterval > 0 {
+			cmdl.Error = "The -j option is mutually exclusive of all other options"
+			return
 		}
 	}
 
