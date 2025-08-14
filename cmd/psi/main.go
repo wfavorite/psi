@@ -47,6 +47,10 @@ func main() {
 		sio.TimeStamp = true
 	}
 
+	if cmdl.OptMono {
+		sio.Monochrome = true
+	}
+
 	if cmdl.DbgRandData {
 		// This is a totally non-standard & hidden option for testing ANSI
 		// colour output.

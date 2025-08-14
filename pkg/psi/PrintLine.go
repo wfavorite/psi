@@ -20,10 +20,10 @@ func (si *StallInfo) PrintLine(w io.Writer) {
 
 func (si *StallInfo) lineWide(w io.Writer) {
 
-	fmt.Fprint(w, "#")
+	fmt.Fprint(w, "  ")
 
 	if si.opt.TimeStamp {
-		fmt.Fprintf(w, " %-12s", si.Timestamp)
+		fmt.Fprintf(w, "%-12s ", si.Timestamp)
 	}
 
 	si.CPU.dataWide(w, si.opt)
@@ -46,7 +46,7 @@ func (pf *PressureFile) dataWide(w io.Writer, o *Options) {
 
 	if o.Monochrome {
 
-		oneLineFmt := " %-6.2f %-6.2f %-6.2f  %-6.2f %-6.2f %-6.2f"
+		oneLineFmt := "%6.2f %6.2f %6.2f %6.2f %6.2f %6.2f "
 
 		fmt.Fprintf(w, oneLineFmt,
 			pf.Some.Avg10,
@@ -57,7 +57,7 @@ func (pf *PressureFile) dataWide(w io.Writer, o *Options) {
 			pf.Full.Avg300,
 		)
 	} else {
-		oneLineFmt := " %s%-6.2f\033[0m %s%-6.2f\033[0m %s%-6.2f\033[0m"
+		oneLineFmt := "%s%6.2f\033[0m %s%6.2f\033[0m %s%6.2f\033[0m "
 
 		c10 := deriveColour(o, pf.Some.Avg10)
 		c60 := deriveColour(o, pf.Some.Avg60)
@@ -97,23 +97,21 @@ const full bool = false
 
 func (si *StallInfo) lineCondensed(w io.Writer) {
 
-	fmt.Fprint(w, "#")
 	if si.opt.TimeStamp {
-		fmt.Fprintf(w, " %-12s", si.Timestamp)
+		fmt.Fprintf(w, "%-12s ", si.Timestamp)
 	}
-	fmt.Fprint(w, " Some")
+	fmt.Fprint(w, "Some ")
 	si.CPU.dataCondensed(w, some, si.opt)
 	si.IO.dataCondensed(w, some, si.opt)
 	si.IRQ.dataCondensed(w, some, si.opt)
 	si.Mem.dataCondensed(w, some, si.opt)
 	fmt.Fprintln(w)
 
-	fmt.Fprint(w, "#")
 	if si.opt.TimeStamp {
-		fmt.Fprintf(w, " %-12s", si.Timestamp)
+		fmt.Fprintf(w, "%-12s ", si.Timestamp)
 	}
 
-	fmt.Fprint(w, " Full")
+	fmt.Fprint(w, "Full ")
 	si.CPU.dataCondensed(w, full, si.opt)
 	si.IO.dataCondensed(w, full, si.opt)
 	si.IRQ.dataCondensed(w, full, si.opt)
@@ -131,7 +129,7 @@ func (pf *PressureFile) dataCondensed(w io.Writer, some bool, o *Options) {
 	}
 
 	if o.Monochrome {
-		twoLineFmt := " %3.0f %3.0f %3.0f"
+		twoLineFmt := "%3.0f %3.0f %3.0f "
 
 		if some {
 			fmt.Fprintf(w, twoLineFmt,
@@ -147,7 +145,7 @@ func (pf *PressureFile) dataCondensed(w io.Writer, some bool, o *Options) {
 			)
 		}
 	} else {
-		twoLineFmt := " %s%3.0f\033[0m %s%3.0f\033[0m %s%3.0f\033[0m"
+		twoLineFmt := "%s%3.0f\033[0m %s%3.0f\033[0m %s%3.0f\033[0m "
 
 		if some {
 			c10 := deriveColour(o, pf.Some.Avg10)
@@ -162,6 +160,7 @@ func (pf *PressureFile) dataCondensed(w io.Writer, some bool, o *Options) {
 				c300,
 				pf.Some.Avg300,
 			)
+
 		} else {
 			c10 := deriveColour(o, pf.Full.Avg10)
 			c60 := deriveColour(o, pf.Full.Avg60)

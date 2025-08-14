@@ -66,21 +66,10 @@ func (si *StallInfo) headerWide(w io.Writer) {
 		fmt.Fprint(w, "             ")
 	}
 
-	if si.CPU != nil {
-		fmt.Fprint(w, " Some                 Full                ")
-	}
-
-	if si.IO != nil {
-		fmt.Fprint(w, " Some                 Full                ")
-	}
-
-	if si.IRQ != nil {
-		fmt.Fprint(w, " Some                 Full                ")
-	}
-
-	if si.Mem != nil {
-		fmt.Fprint(w, " Some                 Full                ")
-	}
+	si.CPU.wideSectHeadL2(w)
+	si.IO.wideSectHeadL2(w)
+	si.IRQ.wideSectHeadL2(w)
+	si.Mem.wideSectHeadL2(w)
 
 	// EOL
 	fmt.Fprintln(w)
@@ -93,25 +82,40 @@ func (si *StallInfo) headerWide(w io.Writer) {
 		fmt.Fprint(w, " Timestamp   ")
 	}
 
-	if si.CPU != nil {
-		fmt.Fprintf(w, " %-6s %-6s %-6s %-6s %-6s %-6s", "avg10", "avg60", "avg300", "avg10", "avg60", "avg300")
-	}
-
-	if si.IO != nil {
-		fmt.Fprintf(w, " %-6s %-6s %-6s %-6s %-6s %-6s", "avg10", "avg60", "avg300", "avg10", "avg60", "avg300")
-	}
-
-	if si.IRQ != nil {
-		fmt.Fprintf(w, " %-6s %-6s %-6s %-6s %-6s %-6s", "avg10", "avg60", "avg300", "avg10", "avg60", "avg300")
-	}
-
-	if si.Mem != nil {
-		fmt.Fprintf(w, " %-6s %-6s %-6s %-6s %-6s %-6s", "avg10", "avg60", "avg300", "avg10", "avg60", "avg300")
-	}
+	si.CPU.wideSectHeadL3(w)
+	si.IO.wideSectHeadL3(w)
+	si.IRQ.wideSectHeadL3(w)
+	si.Mem.wideSectHeadL3(w)
 
 	// EOL
 	fmt.Fprintln(w)
 
+}
+
+/* ======================================================================== */
+
+func (pf *PressureFile) wideSectHeadL2(w io.Writer) {
+
+	if pf == nil {
+		return
+	}
+
+	// Alternate to using the lines.
+	//fmt.Fprint(w, " Some                 Full                ")
+
+	// I prefer the lines.
+	fmt.Fprint(w, " Some________________ Full________________")
+}
+
+/* ======================================================================== */
+
+func (pf *PressureFile) wideSectHeadL3(w io.Writer) {
+
+	if pf == nil {
+		return
+	}
+
+	fmt.Fprintf(w, " %6s %6s %6s %6s %6s %6s", "avg10", "avg60", "avg300", "avg10", "avg60", "avg300")
 }
 
 /* ======================================================================== */
@@ -125,22 +129,22 @@ func (si *StallInfo) headerCondensed(w io.Writer) {
 		fmt.Fprint(w, "             ")
 	}
 
-	fmt.Fprint(w, "     ")
+	fmt.Fprint(w, "    ")
 
 	if si.CPU != nil {
-		fmt.Fprintf(w, " %-8s   ", "CPU")
+		fmt.Fprintf(w, "%-8s    ", "CPU")
 	}
 
 	if si.CPU != nil {
-		fmt.Fprintf(w, " %-8s   ", "IO")
+		fmt.Fprintf(w, "%-8s    ", "IO")
 	}
 
 	if si.IRQ != nil {
-		fmt.Fprintf(w, " %-8s   ", "IRQ")
+		fmt.Fprintf(w, "%-8s    ", "IRQ")
 	}
 
 	if si.Mem != nil {
-		fmt.Fprintf(w, " %-8s   ", "Memory")
+		fmt.Fprintf(w, "%-8s    ", "Memory")
 	}
 
 	// EOL
@@ -154,9 +158,9 @@ func (si *StallInfo) headerCondensed(w io.Writer) {
 		fmt.Fprint(w, " Timestamp   ")
 	}
 
-	twoLineFmt := " %3s %3s %3s"
+	twoLineFmt := "%3s %3s %3s "
 
-	fmt.Fprint(w, "     ")
+	fmt.Fprint(w, "    ")
 
 	if si.CPU != nil {
 		fmt.Fprintf(w, twoLineFmt, "10s", "1m", "5m")
