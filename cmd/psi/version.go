@@ -29,8 +29,10 @@ const VersionString = "0.4.0"
 /* ------------------------------------------------------------------------ */
 /*
 	ToDos:
+	[ ] Add github actions for go test of the command and module.
 
 	Done:
+	[X] Add a license file.
 	[X] Author.
 	[X] Test coverage for bad command line options.
 	[X] All (public) command line options should be in the usage output.
