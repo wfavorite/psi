@@ -98,10 +98,12 @@ func TestAvgEntry(t *testing.T) {
 
 func TestParsePSIFile(t *testing.T) {
 
-	var psi *Pressure
+	var psi *PressureFile
 	var err error
 
-	psi, err = ReadPressureFile("../../test/cpu.1")
+	psi = NewPressureFile()
+
+	err = psi.ReadFromFile("../../test/cpu.1")
 
 	if err == nil {
 		if psi != nil {

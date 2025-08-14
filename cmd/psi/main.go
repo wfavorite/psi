@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/wfavorite/psi/pkg/psi"
 )
@@ -36,18 +37,29 @@ func main() {
 		os.Exit(0)
 	}
 
-	// STUB: Consider creating and calling on an args struct.
-	// STUB: Or something.
+	sio := psi.NewOptions()
 
-	cpuPSI, err := psi.ReadPressureFile("/proc/pressure/cpu")
+	if cmdl.OptWide {
+		sio.Width = psi.Wide
+	}
 
-	if err != nil {
+	if cmdl.OptTMStamp {
+		sio.TimeStamp = true
+	}
+
+	// STUB: This is for debuggery.
+	sio.RandomValues = true
+
+	si := sio.NewStallInfo()
+
+	if err := si.Collect(); err != nil {
+		// STUB: This error message is incorrect.
 		fmt.Fprintf(os.Stderr, "ERROR: Failed to read cpu - %s\n", err.Error())
 		os.Exit(1)
 	}
 
 	if cmdl.OptJSON {
-		jdata, err := json.MarshalIndent(cpuPSI, "", "  ")
+		jdata, err := json.MarshalIndent(si, "", "  ")
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: Failed to marshall data - %s\n", err.Error())
@@ -56,6 +68,24 @@ func main() {
 
 		fmt.Println(string(jdata))
 		os.Exit(0)
+	}
+
+	si.PrintHeader(os.Stdout)
+	si.PrintLine(os.Stdout)
+
+	if cmdl.ArgInterval != 0 {
+
+		for {
+			time.Sleep(cmdl.ArgInterval)
+
+			if err := si.Collect(); err != nil {
+				// STUB: This error message is incorrect.
+				fmt.Fprintf(os.Stderr, "ERROR: Failed to read cpu - %s\n", err.Error())
+				os.Exit(1)
+			}
+
+			si.PrintLine(os.Stdout)
+		}
 	}
 
 	os.Exit(0)

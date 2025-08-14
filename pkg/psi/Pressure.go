@@ -3,6 +3,7 @@ package psi
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -20,8 +21,8 @@ type PressureLine struct {
 
 /* ------------------------------------------------------------------------ */
 
-// Pressure models all the data in a pressure file.
-type Pressure struct {
+// PressureFile models all the data in a pressure file.
+type PressureFile struct {
 	Some PressureLine
 	Full PressureLine
 }
@@ -68,7 +69,15 @@ func (interval Interval) String() (str string) {
 
 /* ======================================================================== */
 
-func ReadPressureFile(filename string) (psi *Pressure, err error) {
+func NewPressureFile() (psi *PressureFile) {
+
+	psi = new(PressureFile)
+	return
+}
+
+/* ======================================================================== */
+
+func (psi *PressureFile) ReadFromFile(filename string) (err error) {
 
 	var f *os.File
 
@@ -79,9 +88,6 @@ func ReadPressureFile(filename string) (psi *Pressure, err error) {
 	}
 
 	defer f.Close()
-
-	// Create a candidate structure
-	psiCandidate := new(Pressure)
 
 	s := bufio.NewScanner(f)
 
@@ -101,9 +107,9 @@ func ReadPressureFile(filename string) (psi *Pressure, err error) {
 		var pLine *PressureLine
 		switch lineType {
 		case "some":
-			pLine = &psiCandidate.Some
+			pLine = &psi.Some
 		case "full":
-			pLine = &psiCandidate.Full
+			pLine = &psi.Full
 
 		default:
 			err = fmt.Errorf("unknown line type")
@@ -155,10 +161,19 @@ func ReadPressureFile(filename string) (psi *Pressure, err error) {
 
 	}
 
-	// All good, no errors so candidate becomes the return value.
-	psi = psiCandidate
-
 	return
+}
+
+/* ======================================================================== */
+
+// DebugRandom generates random values for all data collected.
+func (psi *PressureFile) DebugRandom() {
+	psi.Some.Avg10 = rand.Float64() * float64(100)
+	psi.Some.Avg60 = rand.Float64() * float64(100)
+	psi.Some.Avg300 = rand.Float64() * float64(100)
+	psi.Full.Avg10 = rand.Float64() * float64(100)
+	psi.Full.Avg60 = rand.Float64() * float64(100)
+	psi.Full.Avg300 = rand.Float64() * float64(100)
 }
 
 /* ======================================================================== */

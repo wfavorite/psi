@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"time"
 )
 
 /* ------------------------------------------------------------------------ */
@@ -16,7 +17,10 @@ type CmdLine struct {
 	OptAbout    bool
 	OptUsage    bool
 	OptJSON     bool
-	ArgInterval int
+	OptWide     bool
+	OptTMStamp  bool
+	OptMono     bool
+	ArgInterval time.Duration
 	Error       string
 }
 
@@ -44,6 +48,9 @@ func parseCommandLine(args []string) (cmdl *CmdLine, err error) {
 	fs.BoolVar(&cmdl.OptAbout, "a", false, "")
 	fs.BoolVar(&cmdl.OptUsage, "h", false, "")
 	fs.BoolVar(&cmdl.OptJSON, "j", false, "")
+	fs.BoolVar(&cmdl.OptWide, "w", false, "")
+	fs.BoolVar(&cmdl.OptTMStamp, "t", false, "")
+	fs.BoolVar(&cmdl.OptMono, "m", false, "")
 
 	err = fs.Parse(args[1:])
 
@@ -57,11 +64,22 @@ func parseCommandLine(args []string) (cmdl *CmdLine, err error) {
 	switch len(remaining) {
 	case 0:
 	case 1:
-		if i64, pErr := strconv.ParseInt(remaining[0], 10, 32); pErr == nil {
-			cmdl.ArgInterval = int(i64)
+		// First, attempt to parse as an integer (seconds).
+		if i64, ipErr := strconv.ParseInt(remaining[0], 10, 32); ipErr == nil {
+			// This is not really a proper Duration --------+
+			// but multiplying it by a Duration fixes that. |
+			//                                              V
+			cmdl.ArgInterval = time.Second * time.Duration(i64)
 		} else {
-			cmdl.Error = "The interval was not parsable"
-			return
+			// ...if that fails, parse as a Duration.
+
+			if dur, dpErr := time.ParseDuration(remaining[0]); dpErr == nil {
+				cmdl.ArgInterval = dur
+			} else {
+				cmdl.Error = "The interval was not parsable"
+				return
+			}
+
 		}
 	default:
 		cmdl.Error = "Extra (non-flag) arguments not understood"
@@ -93,21 +111,21 @@ func (cmdl *CmdLine) ValidateArgs() (err error) {
 	}
 
 	if cmdl.OptAbout {
-		if cmdl.OptUsage || cmdl.OptJSON || cmdl.ArgInterval > 0 {
+		if cmdl.OptUsage || cmdl.OptJSON || cmdl.OptWide || cmdl.ArgInterval > 0 {
 			cmdl.Error = "The -a option is mutually exclusive of all other options"
 			return
 		}
 	}
 
 	if cmdl.OptUsage {
-		if cmdl.OptJSON || cmdl.ArgInterval > 0 {
+		if cmdl.OptJSON || cmdl.OptWide || cmdl.ArgInterval > 0 {
 			cmdl.Error = "The -h option is mutually exclusive of all other options"
 			return
 		}
 	}
 
 	if cmdl.OptJSON {
-		if cmdl.ArgInterval > 0 {
+		if cmdl.OptWide || cmdl.ArgInterval > 0 {
 			cmdl.Error = "The -j option is mutually exclusive of all other options"
 			return
 		}
