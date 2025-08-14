@@ -69,6 +69,8 @@ func (interval Interval) String() (str string) {
 
 /* ======================================================================== */
 
+// NewPressureFile is used to create a PressureFile structure that can be
+// used to read data from a file.
 func NewPressureFile() (psi *PressureFile) {
 
 	psi = new(PressureFile)
@@ -77,6 +79,8 @@ func NewPressureFile() (psi *PressureFile) {
 
 /* ======================================================================== */
 
+// ReadFromFile reads the PSI pressure data from the supplied filename. The
+// supplied filename should be one of the files found in /proc/pressure.
 func (psi *PressureFile) ReadFromFile(filename string) (err error) {
 
 	var f *os.File

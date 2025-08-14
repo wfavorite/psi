@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -14,12 +15,13 @@ import (
 // CmdLine is a structure that captures the realm of possible command line
 // arguments.
 type CmdLine struct {
-	OptAbout    bool
-	OptUsage    bool
-	OptJSON     bool
-	OptWide     bool
-	OptTMStamp  bool
-	OptMono     bool
+	OptAbout    bool // -a
+	OptUsage    bool // -h
+	OptJSON     bool // -j
+	OptMono     bool // -m
+	DbgRandData bool // -r (hidden)
+	OptTMStamp  bool // -t
+	OptWide     bool // -w
 	ArgInterval time.Duration
 	Error       string
 }
@@ -42,23 +44,26 @@ func parseCommandLine(args []string) (cmdl *CmdLine, err error) {
 	cmdl = new(CmdLine)
 
 	fs := flag.NewFlagSet("psi", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
-	fs.Usage = func() {}
+	fs.SetOutput(io.Discard) // Don't write to anything
+	fs.Usage = func() {}     // If asked, do a no-op
 
-	fs.BoolVar(&cmdl.OptAbout, "a", false, "")
-	fs.BoolVar(&cmdl.OptUsage, "h", false, "")
-	fs.BoolVar(&cmdl.OptJSON, "j", false, "")
-	fs.BoolVar(&cmdl.OptWide, "w", false, "")
-	fs.BoolVar(&cmdl.OptTMStamp, "t", false, "")
-	fs.BoolVar(&cmdl.OptMono, "m", false, "")
+	fs.BoolVar(&cmdl.OptAbout, "a", false, "")    // -a  About
+	fs.BoolVar(&cmdl.OptUsage, "h", false, "")    // -h  Usage
+	fs.BoolVar(&cmdl.OptJSON, "j", false, "")     // -h  Dump a JSON structure
+	fs.BoolVar(&cmdl.OptMono, "m", false, "")     // -m  Write tabular output in monochrome
+	fs.BoolVar(&cmdl.DbgRandData, "r", false, "") // -r  (Hidden) option to run with random data
+	fs.BoolVar(&cmdl.OptTMStamp, "t", false, "")  // -t  Include timestamp in tabular output
+	fs.BoolVar(&cmdl.OptWide, "w", false, "")     // -w  Write wide tabular output
 
 	err = fs.Parse(args[1:])
 
+	// This is most likely a bad option message.
 	if err != nil {
 		cmdl.Error = err.Error()
 		return
 	}
 
+	// A list of what is left. There should be *max* one.
 	remaining := fs.Args()
 
 	switch len(remaining) {
@@ -76,7 +81,7 @@ func parseCommandLine(args []string) (cmdl *CmdLine, err error) {
 			if dur, dpErr := time.ParseDuration(remaining[0]); dpErr == nil {
 				cmdl.ArgInterval = dur
 			} else {
-				cmdl.Error = "The interval was not parsable"
+				cmdl.Error = fmt.Sprintf("The interval \"%s\" was not parsable", remaining[0])
 				return
 			}
 
@@ -86,7 +91,11 @@ func parseCommandLine(args []string) (cmdl *CmdLine, err error) {
 		return
 	}
 
-	err = cmdl.ValidateArgs()
+	// This is the assert case. The only thing that returns an error here
+	// would have been caught by now. So... this is just being pedantic.
+	if assertCase := cmdl.ValidateArgs(); assertCase != nil {
+		log.Fatal(assertCase.Error())
+	}
 
 	return
 }
@@ -105,30 +114,44 @@ func (cmdl *CmdLine) ValidateArgs() (err error) {
 
 	if len(cmdl.Error) > 0 {
 		// No point in processing if we already have an error.
-		// Note: This should not be set as we arrive here. STUB
-
 		return
 	}
 
 	if cmdl.OptAbout {
-		if cmdl.OptUsage || cmdl.OptJSON || cmdl.OptWide || cmdl.ArgInterval > 0 {
+		if cmdl.OptUsage ||
+			cmdl.OptJSON ||
+			cmdl.OptMono ||
+			cmdl.OptTMStamp ||
+			cmdl.OptWide ||
+			cmdl.ArgInterval > 0 {
 			cmdl.Error = "The -a option is mutually exclusive of all other options"
 			return
 		}
 	}
 
 	if cmdl.OptUsage {
-		if cmdl.OptJSON || cmdl.OptWide || cmdl.ArgInterval > 0 {
+		if cmdl.OptJSON ||
+			cmdl.OptMono ||
+			cmdl.OptTMStamp ||
+			cmdl.OptWide ||
+			cmdl.ArgInterval > 0 {
 			cmdl.Error = "The -h option is mutually exclusive of all other options"
 			return
 		}
 	}
 
 	if cmdl.OptJSON {
-		if cmdl.OptWide || cmdl.ArgInterval > 0 {
+		if cmdl.OptMono ||
+			cmdl.OptTMStamp ||
+			cmdl.OptWide ||
+			cmdl.ArgInterval > 0 {
 			cmdl.Error = "The -j option is mutually exclusive of all other options"
 			return
 		}
+	}
+
+	if cmdl.ArgInterval < 0 {
+		cmdl.Error = "The supplied interval is out of bounds (negative)"
 	}
 
 	return

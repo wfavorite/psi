@@ -122,8 +122,10 @@ func (si *StallInfo) headerCondensed(w io.Writer) {
 	fmt.Fprint(w, "#")
 
 	if si.opt.TimeStamp {
-		fmt.Fprint(w, "                  ")
+		fmt.Fprint(w, "             ")
 	}
+
+	fmt.Fprint(w, "     ")
 
 	if si.CPU != nil {
 		fmt.Fprintf(w, " %-8s   ", "CPU")

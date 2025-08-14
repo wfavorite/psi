@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/wfavorite/psi/pkg/psi"
+	"psi/pkg/psi"
 )
 
 /* ======================================================================== */
@@ -15,11 +15,11 @@ import (
 func main() {
 
 	var cmdl *CmdLine
-	if cl, clErr := ParseCommandLine(); clErr != nil {
-		fmt.Fprintln(os.Stderr, "ASSERT:", clErr.Error())
-		os.Exit(1)
-	} else {
+	if cl, clErr := ParseCommandLine(); clErr == nil {
 		cmdl = cl
+	} else {
+		fmt.Fprintln(os.Stderr, "ERROR:", clErr.Error())
+		os.Exit(1)
 	}
 
 	if len(cmdl.Error) > 0 {
@@ -47,14 +47,16 @@ func main() {
 		sio.TimeStamp = true
 	}
 
-	// STUB: This is for debuggery.
-	sio.RandomValues = true
+	if cmdl.DbgRandData {
+		// This is a totally non-standard & hidden option for testing ANSI
+		// colour output.
+		sio.RandomValues = true
+	}
 
 	si := sio.NewStallInfo()
 
 	if err := si.Collect(); err != nil {
-		// STUB: This error message is incorrect.
-		fmt.Fprintf(os.Stderr, "ERROR: Failed to read cpu - %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "ERROR: Failed to read psi data\n       %s\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -79,8 +81,7 @@ func main() {
 			time.Sleep(cmdl.ArgInterval)
 
 			if err := si.Collect(); err != nil {
-				// STUB: This error message is incorrect.
-				fmt.Fprintf(os.Stderr, "ERROR: Failed to read cpu - %s\n", err.Error())
+				fmt.Fprintf(os.Stderr, "ERROR: Failed to read psi data\n       %s\n", err.Error())
 				os.Exit(1)
 			}
 
@@ -96,6 +97,9 @@ func main() {
 // HandleAbout prints the standard about information to stdout.
 func HandleAbout() {
 	fmt.Println("psi - Pressure reporter")
+	fmt.Println("  Version:", VersionString)
+	fmt.Println("  Paul Reynaud <inmate@itter.castle.at>")
+	fmt.Println("  William Favorite <wfavorit@gmail.com>")
 
 }
 
@@ -106,8 +110,13 @@ func HandleUsage() {
 	fmt.Println("psi - Pressure reporter")
 	fmt.Println("  Usage: psi <options> <int>")
 	fmt.Println("  Options:")
-	fmt.Println("    -a     Show about information")
-	fmt.Println("    -h     Show this usage information")
-	fmt.Println("    -j     Dump current stats in JSON (incompatible with other options or interval)")
-	fmt.Println("    <int>  Print tabular stats on interval")
+	fmt.Println("    -a     Show about information.")
+	fmt.Println("    -h     Show this usage information.")
+	fmt.Println("    -j     Dump current stats as a JSON structure. This option is incompatible")
+	fmt.Println("           with other options or interval printing.")
+	fmt.Println("    -m     Print output in monochrome. Default is ANSI colour.")
+	fmt.Println("    -t     Print a timestamp on each line of tabular output.")
+	fmt.Println("    -w     Print in a wide format (potentially beyond 80 chars).")
+	fmt.Println("    <int>  Print tabular stats on interval. The supplied time is assumed either")
+	fmt.Println("           seconds (if an integer) or a Golang duration (eg: 500ms, 1s, 2m).")
 }

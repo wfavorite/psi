@@ -7,6 +7,7 @@ import (
 
 /* ======================================================================== */
 
+// PrintLine is used to print a data line(s) to the supplied io.Writer.
 func (si *StallInfo) PrintLine(w io.Writer) {
 	if si.opt.Width == Wide {
 		si.lineWide(w)
@@ -89,8 +90,8 @@ func (pf *PressureFile) dataWide(w io.Writer, o *Options) {
 	}
 }
 
-const Some bool = true
-const Full bool = false
+const some bool = true
+const full bool = false
 
 /* ======================================================================== */
 
@@ -101,10 +102,10 @@ func (si *StallInfo) lineCondensed(w io.Writer) {
 		fmt.Fprintf(w, " %-12s", si.Timestamp)
 	}
 	fmt.Fprint(w, " Some")
-	si.CPU.dataCondensed(w, Some, si.opt)
-	si.IO.dataCondensed(w, Some, si.opt)
-	si.IRQ.dataCondensed(w, Some, si.opt)
-	si.Mem.dataCondensed(w, Some, si.opt)
+	si.CPU.dataCondensed(w, some, si.opt)
+	si.IO.dataCondensed(w, some, si.opt)
+	si.IRQ.dataCondensed(w, some, si.opt)
+	si.Mem.dataCondensed(w, some, si.opt)
 	fmt.Fprintln(w)
 
 	fmt.Fprint(w, "#")
@@ -113,10 +114,10 @@ func (si *StallInfo) lineCondensed(w io.Writer) {
 	}
 
 	fmt.Fprint(w, " Full")
-	si.CPU.dataCondensed(w, Full, si.opt)
-	si.IO.dataCondensed(w, Full, si.opt)
-	si.IRQ.dataCondensed(w, Full, si.opt)
-	si.Mem.dataCondensed(w, Full, si.opt)
+	si.CPU.dataCondensed(w, full, si.opt)
+	si.IO.dataCondensed(w, full, si.opt)
+	si.IRQ.dataCondensed(w, full, si.opt)
+	si.Mem.dataCondensed(w, full, si.opt)
 	fmt.Fprintln(w)
 
 }
