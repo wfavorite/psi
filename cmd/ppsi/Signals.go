@@ -8,10 +8,17 @@ import (
 	"github.com/wfavorite/initq"
 )
 
+/* ------------------------------------------------------------------------ */
+
+// Signals wraps the Signals channel.
 type Signals struct {
-	S chan os.Signal
+	s     chan os.Signal `json:"-"`
+	Stats map[string]int `json:"stats"`
 }
 
+/* ======================================================================== */
+
+// RegisterSignals registers the signal s that we will either ignore or handle.
 func (cd *CoreData) RegisterSignals() initq.ReqResult {
 
 	if cd.EvtQ == nil {
@@ -19,31 +26,35 @@ func (cd *CoreData) RegisterSignals() initq.ReqResult {
 	}
 
 	sigs := new(Signals)
-	sigs.S = make(chan os.Signal, 1)
+	sigs.s = make(chan os.Signal, 1)
+	sigs.Stats = make(map[string]int)
 
 	// Those to ignore
 	signal.Ignore(syscall.SIGHUP)
 
 	// Those to handle
-	signal.Notify(sigs.S, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGXCPU)
+	signal.Notify(sigs.s, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGXCPU, syscall.SIGUSR1)
 
 	cd.Sigs = sigs
 
 	return initq.Satisfied
 }
 
+/* ======================================================================== */
+
+// HandleSignal is called with the signal that is received.
 func (cd *CoreData) HandleSignal(sig os.Signal) {
 
-	// STUB: As of now, all events we have registered are about shutting down
-	cd.NewShutdownEvent()
+	cd.Sigs.Stats[sig.String()]++
 
-	// STUB: The only value here is logging the specific signal.
-	/*
-		switch sig {
-		case syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM:
-			cd.EvtQ.NewShutdownEvent()
-		case syscall.SIGXCPU:
+	switch sig {
+	case syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM:
+		cd.NewShutdownEvent()
+	case syscall.SIGXCPU:
+		cd.Logr.Normal.Println("Shutting down on XCPU signal.")
+		cd.NewShutdownEvent()
+	case syscall.SIGUSR1:
+		cd.NewObserveEvent()
+	}
 
-		}
-	*/
 }

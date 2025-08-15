@@ -1,3 +1,5 @@
+// Package main implements the event handling 'server' side of the PSI
+// collector.
 package main
 
 import (
@@ -7,9 +9,9 @@ import (
 	"github.com/wfavorite/initq"
 )
 
-func main() {
+/* ======================================================================== */
 
-	defer fmt.Println("Exiting main()")
+func main() {
 
 	cd := NewCoreData()
 
@@ -20,18 +22,21 @@ func main() {
 	iq.Add("eventq", cd.StartEventQ)
 	iq.Add("listener", cd.StartListener)
 	iq.Add("signals", cd.RegisterSignals)
+	iq.Add("claunch", cd.ClientLaunch)
 
-	// STUB: Check the error here.
-	iq.Process()
+	if err := iq.Process(); err != nil {
+		fmt.Fprintln(os.Stderr, "ERROR:", err.Error())
+		os.Exit(1)
+	}
+
+	cd.Logr.Normal.Printf("ppsi (PID=%d) started.", os.Getpid())
 
 	// Now fall into the main event loop.
-
 	for {
 		select {
-		case sig := <-cd.Sigs.S:
+		case sig := <-cd.Sigs.s:
 			cd.HandleSignal(sig)
-		case evt, ok := <-cd.EvtQ.Q:
-
+		case evt, ok := <-cd.EvtQ.q:
 			if ok {
 				evt.Handle()
 			} else {

@@ -15,14 +15,16 @@ import (
 
 /* ------------------------------------------------------------------------ */
 
-// Listener
+// Listener is the structure that contains the listener instance and related
+// arguments / stats.
 type Listener struct {
-	l        net.Listener
-	Filename string
+	l        net.Listener `json:"-"`
+	Filename string       `json:"unix_socket_filename"`
 }
 
 /* ======================================================================== */
 
+// StartListener starts the unix socket listener.
 func (cd *CoreData) StartListener() initq.ReqResult {
 
 	if cd == nil {
@@ -108,8 +110,6 @@ func (cd *CoreData) listen() {
 			continue
 		}
 
-		//fmt.Println("Got Data")
-
 		// Handle the connection in a goroutine
 		go cd.handleClientConn(conn)
 	}
@@ -129,21 +129,18 @@ func (cd *CoreData) handleClientConn(conn net.Conn) {
 		n, err := conn.Read(buf)
 
 		if err != nil {
-
 			if errors.Is(err, io.EOF) {
 				cd.NewClientExitsEvent(cliCon)
 				return
-			} else {
-				cd.Logr.Normal.Printf("Failed to read client send - %s\n", err.Error())
 			}
-			return
+
+			// STUB: Perhaps keep track of these.
+			cd.Logr.Normal.Printf("Failed to read client send - %s\n", err.Error())
+			continue
 		}
 
 		// Convert to a properly sized string
 		data := string(buf[:n])
-
-		//fmt.Printf("%s\n", data)
-
 		cd.processClientMessage(cliCon, data)
 
 	}
@@ -173,6 +170,7 @@ func (cd *CoreData) processClientMessage(cc *ClientConn, msg string) {
 		cd.NewHeartbeatEvent(cc)
 
 	default:
+		// STUB: Track these in stats and send to log
 		fmt.Printf("Client sent unknown data.\n")
 	}
 

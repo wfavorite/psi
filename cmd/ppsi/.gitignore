@@ -1,2 +1,5 @@
 # The binary
 ppsi
+
+# The observability file.
+ppsi.observe.json

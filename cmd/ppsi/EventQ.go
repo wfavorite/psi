@@ -1,6 +1,12 @@
 package main
 
-import "github.com/wfavorite/initq"
+import (
+	"encoding/json"
+	"os"
+	"time"
+
+	"github.com/wfavorite/initq"
+)
 
 /* ------------------------------------------------------------------------ */
 
@@ -13,7 +19,8 @@ type Event interface {
 
 // EventQ is the structure holding the event q (channel) and stats.
 type EventQ struct {
-	Q chan Event
+	q     chan Event     `json:"-"`
+	Stats map[string]int `json:"stats"`
 }
 
 /* ======================================================================== */
@@ -30,7 +37,8 @@ func (cd *CoreData) StartEventQ() initq.ReqResult {
 	}
 
 	eq := new(EventQ)
-	eq.Q = make(chan Event, 3)
+	eq.q = make(chan Event, 3)
+	eq.Stats = make(map[string]int)
 
 	cd.EvtQ = eq
 
@@ -57,7 +65,7 @@ func (cd *CoreData) NewShutdownEvent() {
 	evt := new(ShutdownEvent)
 	evt.cd = cd
 
-	cd.EvtQ.Q <- evt
+	cd.EvtQ.q <- evt
 }
 
 /* ======================================================================== */
@@ -65,13 +73,23 @@ func (cd *CoreData) NewShutdownEvent() {
 // Handle calls all shutdown calls, and then closes the EventQ chan.
 func (evt *ShutdownEvent) Handle() {
 
-	evt.cd.ShutdownListener()
+	// To be consistent... but this will be deleted and never seen.
+	evt.cd.EvtQ.Stats["Shutdown"]++
 
-	close(evt.cd.EvtQ.Q)
+	evt.cd.ShutdownClients()
+	// Give the clients a bit to time to properly respond to the signal. This
+	// involves:
+	// - Getting the signal.
+	// - Handling a gracefull shutdown.
+	// - ...before the Listener exits.
+	time.Sleep(time.Microsecond * 500)
+	evt.cd.ShutdownListener()
+	close(evt.cd.EvtQ.q)
 }
 
 /* ------------------------------------------------------------------------ */
 
+// HeartbeatEvent is a periodic check-in from a client.
 type HeartbeatEvent struct {
 	cd  *CoreData
 	cli *ClientConn
@@ -79,26 +97,28 @@ type HeartbeatEvent struct {
 
 /* ======================================================================== */
 
+// NewHeartbeatEvent creates a new heartbeat for the specified client.
 func (cd *CoreData) NewHeartbeatEvent(cli *ClientConn) {
 
 	evt := new(HeartbeatEvent)
 	evt.cd = cd
 	evt.cli = cli
 
-	cd.EvtQ.Q <- evt
-
-	return
+	cd.EvtQ.q <- evt
 }
 
 /* ======================================================================== */
 
+// Handle registers the hearbeat into the verbose logger.
 func (evt *HeartbeatEvent) Handle() {
 
+	evt.cd.EvtQ.Stats["Heartbeat"]++
 	evt.cd.Logr.Verbose.Printf("Heart beat from pid %d.\n", evt.cli.PID)
 }
 
 /* ------------------------------------------------------------------------ */
 
+// ClientRegistrationEvent is when a new client connects to the system.
 type ClientRegistrationEvent struct {
 	cd  *CoreData
 	cli *ClientConn
@@ -106,38 +126,82 @@ type ClientRegistrationEvent struct {
 
 /* ======================================================================== */
 
+// NewClientRegistrationEvent creates and Qs a ClientRegistrationEvent
 func (cd *CoreData) NewClientRegistrationEvent(cli *ClientConn) {
 
 	evt := new(ClientRegistrationEvent)
 	evt.cd = cd
 	evt.cli = cli
 
-	cd.EvtQ.Q <- evt
+	cd.EvtQ.q <- evt
 }
 
 /* ======================================================================== */
 
 func (evt *ClientRegistrationEvent) Handle() {
 
+	evt.cd.EvtQ.Stats["ClientRegistration"]++
 	evt.cd.Logr.Normal.Printf("Client reports up. Pid %d.\n", evt.cli.PID)
 }
+
+/* ------------------------------------------------------------------------ */
 
 type ClientExitsEvent struct {
 	cd  *CoreData
 	cli *ClientConn
 }
 
+/* ======================================================================== */
+
 func (cd *CoreData) NewClientExitsEvent(cli *ClientConn) {
 	evt := new(ClientExitsEvent)
 	evt.cd = cd
 	evt.cli = cli
 
-	cd.EvtQ.Q <- evt
+	cd.EvtQ.q <- evt
 }
+
+/* ======================================================================== */
 
 func (evt *ClientExitsEvent) Handle() {
 
+	evt.cd.EvtQ.Stats["ClientExits"]++
 	evt.cd.Logr.Normal.Printf("Client %d exits.", evt.cli.PID)
 
 	evt.cd.Cash.Remove(evt.cli.PID)
+}
+
+/* ------------------------------------------------------------------------ */
+
+type ObserveEvent struct {
+	cd *CoreData
+}
+
+/* ======================================================================== */
+
+func (cd *CoreData) NewObserveEvent() {
+
+	evt := new(ObserveEvent)
+	evt.cd = cd
+
+	cd.EvtQ.q <- evt
+}
+
+/* ======================================================================== */
+
+// Handle dumps the CoreData structure as an observability object.
+func (evt *ObserveEvent) Handle() {
+
+	evt.cd.EvtQ.Stats["Observe"]++
+
+	if jdata, jerr := json.MarshalIndent(evt.cd, "", "  "); jerr == nil {
+		if werr := os.WriteFile("ppsi.observe.json", jdata, 0644); werr == nil {
+			evt.cd.Logr.Verbose.Println("Observability dropped.")
+		} else {
+			evt.cd.Logr.Normal.Println("Observability file write error:", werr.Error())
+		}
+	} else {
+		evt.cd.Logr.Normal.Println("Observability file jsonify error:", jerr.Error())
+	}
+
 }

@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <signal.h>
 
 #define UNIX_SOCKET_NAME "/tmp/cpsi.sock"
 
@@ -12,14 +13,36 @@
 
 /*
     ToDo:
+    [ ] Design standardized return values that can be used for observability.
+    [ ] Accept the three arguments.
+    [ ] Move to a Linux host and add the actual poll implementation.
+        (Currently written/running on Darwin.)
     [ ] Should not write to stdout. Perhaps to syslog, or a local log?
     [ ] The Unix socket path should probably be an environmental variable
         (passed by the parent).
+    [ ] Find a more appropriate heartbeat time (or drop it).
+    [ ] Write a proper signal handler.
 
     Done:
 
 */
 
+int continue_loop;
+
+/* ======================================================================== */
+
+void TERM_handler(int sig)
+{
+    continue_loop = 0;
+
+    // STUB: Shutdown should happen here - rather than setting the loop-stop
+    // STUB: variable.
+}
+
+
+
+
+/* ======================================================================== */
 
 int main(int argc, char *argv[])
 {
@@ -27,14 +50,16 @@ int main(int argc, char *argv[])
     struct sockaddr_un addr;
     int rv;                  /* Return value - multiple uses. */
     char mbuf[BUFFER_SIZE];
-    int loop_exit;
 
-    // STUB: You could check to see if this exists first.
-    // STUB: ...and conditionally remove it.
-    //printf("Removing the unix socket...");
-    //unlink(UNIX_SOCKET_NAME);
-    //printf("Done.\n");
+    
+    // Initialize our global.
+    continue_loop = 1;
 
+    // Register the signal handler.
+    signal(SIGTERM, TERM_handler);
+    signal(SIGHUP, SIG_IGN);
+
+   // STUB: Check for and grab the arguments here.
 
 
     printf("Creating the socket...");
@@ -81,9 +106,11 @@ int main(int argc, char *argv[])
     printf("Done.\n");
 
 
-    loop_exit = 1;
-    while ( loop_exit )
+    
+    while ( continue_loop )
     {
+        // STUB: This is incompatible with the shutdown.
+        // STUB: The shutdown should probably just be handled in the signal handler.
         sleep(3);
         
 
