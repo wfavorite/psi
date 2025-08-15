@@ -121,10 +121,11 @@ func (psi *PressureFile) ReadFromFile(filename string) (err error) {
 		}
 
 		var interval Interval
-		var value float64
+		var fValue float64
+		var iValue int64
 
 		// avg10
-		interval, value, err = parseAvgEntry(parts[1])
+		interval, fValue, err = parseAvgEntry(parts[1])
 
 		if err != nil {
 			return
@@ -135,10 +136,10 @@ func (psi *PressureFile) ReadFromFile(filename string) (err error) {
 			return
 		}
 
-		pLine.Avg10 = value
+		pLine.Avg10 = fValue
 
 		// avg60
-		interval, value, err = parseAvgEntry(parts[2])
+		interval, fValue, err = parseAvgEntry(parts[2])
 
 		if err != nil {
 			return
@@ -148,10 +149,10 @@ func (psi *PressureFile) ReadFromFile(filename string) (err error) {
 			err = fmt.Errorf("second item not avg60")
 		}
 
-		pLine.Avg60 = value
+		pLine.Avg60 = fValue
 
 		// avg300
-		interval, value, err = parseAvgEntry(parts[3])
+		interval, fValue, err = parseAvgEntry(parts[3])
 
 		if err != nil {
 			return
@@ -161,7 +162,16 @@ func (psi *PressureFile) ReadFromFile(filename string) (err error) {
 			err = fmt.Errorf("third item not avg300")
 		}
 
-		pLine.Avg300 = value
+		pLine.Avg300 = fValue
+
+		// total
+		iValue, err = parseTotalEntry(parts[4])
+
+		if err != nil {
+			return
+		}
+
+		pLine.Total = iValue
 
 	}
 
@@ -220,6 +230,35 @@ func parseAvgEntry(entry string) (interval Interval, value float64, err error) {
 	if value < 0 || value > 100 {
 		err = fmt.Errorf("parsed value out of bounds")
 	}
+
+	return
+}
+
+/* ======================================================================== */
+
+func parseTotalEntry(entry string) (value int64, err error) {
+
+	if len(entry) < 7 {
+		err = fmt.Errorf("impossibly short total entry")
+		return
+	}
+
+	if !strings.HasPrefix(entry, "total") {
+		// Far more likely...
+		// - Wrong data item was passed to this call, or
+		// - Reading a different(ly formatted) file.
+		err = fmt.Errorf("mislabeled total entry")
+		return
+	}
+
+	parts := strings.Split(entry, "=")
+
+	if len(parts) != 2 {
+		err = fmt.Errorf("invalid total split")
+		return
+	}
+
+	value, err = strconv.ParseInt(parts[1], 10, 64)
 
 	return
 }

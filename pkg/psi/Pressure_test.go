@@ -96,6 +96,41 @@ func TestAvgEntry(t *testing.T) {
 
 /* ======================================================================== */
 
+func TestTotalEntry(t *testing.T) {
+
+	var value int64
+	var err error
+	var expected int64
+
+	// -----
+	expected = 0
+	value, err = parseTotalEntry("total=0")
+
+	if err != nil {
+		t.Errorf("Errored on valid pattern - %s", err.Error())
+	}
+
+	if value != expected {
+		t.Errorf("Parsed %d; expected %d", value, expected)
+	}
+
+	// -----
+	// Actual 'some' entry on my host.
+	expected = 788963096
+	value, err = parseTotalEntry("total=788963096")
+
+	if err != nil {
+		t.Errorf("Errored on valid pattern - %s", err.Error())
+	}
+
+	if value != expected {
+		t.Errorf("Parsed %d; expected %d", value, expected)
+	}
+
+}
+
+/* ======================================================================== */
+
 func TestParsePSIFile(t *testing.T) {
 
 	var psi *PressureFile
