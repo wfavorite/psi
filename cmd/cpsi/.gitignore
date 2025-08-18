@@ -1,4 +1,7 @@
 
 # Binary and build artifacts
 cpsi
-main.o
+*.o
+
+# Temp debug files
+cpsi.out.*

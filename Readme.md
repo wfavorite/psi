@@ -18,3 +18,16 @@ psi - Pressure reporter
     <int>  Print tabular stats on interval. The supplied time is assumed either
            seconds (if an integer) or a Golang duration (eg: 500ms, 1s, 2m).
 ```
+
+## Other things
+
+> Like most things shared on github, this code is not intended for production use. If you want such tooling for production use - consider *hiring* me, and I will write/maintain/support such tooling for you.
+
+Instead of *watching* pressure information it is more desirable to poll and alert on thresholds. This is discussed in the above kernel.org document. I have created a "client-server" approach to monitoring as a first attempt at such a tool. The thinking is that such a tool (capable of easily plugging into some framework) should be written in a more 'supportable' language like Go. By "supportable" I am referring to the ability to easily leverage libraries that can do simple things like make RESTful calls or make gRPC calls.
+
+The first 'spin' involved writing a pure Go 'handler' and a pure C 'trigger' and connecting them via a Unix socket. This is essentially a proof-of-concept for the ability to monitor.
+
+The second approach may be to add a C poll function in a Go thread or to use a pure Go implementation using something like the syscalls package.
+
+- First spin: [ppsi](cmd/ppsi/) the Go 'framework' that calls the [cpsi](cmd/cpsi/) C poll implementation.
+- Second spin: Not written at this time.

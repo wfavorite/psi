@@ -3,40 +3,43 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <sys/un.h>
+#include <fcntl.h>
 #include <signal.h>
+#include <poll.h>
+#include <errno.h>
 
-#define UNIX_SOCKET_NAME "/tmp/cpsi.sock"
 
-#define BUFFER_SIZE 1024
+#include "clargs.h"
+#include "usock.h"
+#include "debugstr.h"
 
 /*
     ToDo:
+    [ ] Make stdout/debug mode stdout 'consistent'.
     [ ] Design standardized return values that can be used for observability.
-    [ ] Accept the three arguments.
     [ ] Move to a Linux host and add the actual poll implementation.
         (Currently written/running on Darwin.)
     [ ] Should not write to stdout. Perhaps to syslog, or a local log?
     [ ] The Unix socket path should probably be an environmental variable
         (passed by the parent).
     [ ] Find a more appropriate heartbeat time (or drop it).
-    [ ] Write a proper signal handler.
+    
 
     Done:
-
+    [X] Write a proper signal handler.
+    [X] Accept the three arguments.
 */
 
-int continue_loop;
+
 
 /* ======================================================================== */
 
 void TERM_handler(int sig)
 {
-    continue_loop = 0;
-
-    // STUB: Shutdown should happen here - rather than setting the loop-stop
-    // STUB: variable.
+    shutdown_socket();
+    fprintf(debug_fp, "Monitor exiting.\n"); fflush(debug_fp);
+    fclose(debug_fp);
+    exit(0);
 }
 
 
@@ -46,97 +49,93 @@ void TERM_handler(int sig)
 
 int main(int argc, char *argv[])
 {
-    int s;                   /* Socket */
-    struct sockaddr_un addr;
-    int rv;                  /* Return value - multiple uses. */
-    char mbuf[BUFFER_SIZE];
-
-    
-    // Initialize our global.
-    continue_loop = 1;
+    CLArgs *cmdline;
+    struct pollfd pfd;       /* One member array of pollfd for poll()       */
+    int poll_rv;             /* poll() return value                         */
 
     // Register the signal handler.
     signal(SIGTERM, TERM_handler);
+    signal(SIGQUIT, TERM_handler);
+    signal(SIGINT, TERM_handler);
     signal(SIGHUP, SIG_IGN);
 
-   // STUB: Check for and grab the arguments here.
-
-
-    printf("Creating the socket...");
-    s = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (s < 0)
+    // Read the command line.
+    if ( NULL == (cmdline = parse_cmdline(argc, argv)) )
     {
-        printf("Failed.\n");
-        // STUB: Use strerror()
-        fprintf(stderr, "ERROR: Failed to create a Unix socket.\n");
+        // A true assert-level issue. (I just don't use assert() for the check.)
+        fprintf(stderr, "ASSERT: Failed to allocate memory during app start.\n");
         exit(1);
     }
-    printf("Done.\n");
 
-
-    printf("Connecting to the unix socket.");
-    memset(&addr, 0, sizeof(struct sockaddr_un));
-    printf(".");
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, UNIX_SOCKET_NAME, sizeof(addr.sun_path) - 1);
-    printf(".");
-
-    rv = connect(s,
-            (const struct sockaddr *) &addr,
-            sizeof(struct sockaddr_un));
-
-    if (rv < 0) {
-        printf("Failed.\n");
-        // STUB: Use strerror()
-        fprintf(stderr, "ERROR: Failed to connect to the Unix socket.\n");
+    // Handle the command line (parsing) error - if one exists.
+    if (cmdline->error[0] != 0)
+    {
+        fprintf(stderr, "ERROR: %s\n", cmdline->error);
         exit(1);
     }
-    printf("Done.\n");
 
-    printf("Reporting up...");
-    snprintf(mbuf, BUFFER_SIZE, "ClientUp(%d)", getpid());
-    printf(".");
-    rv = write(s, mbuf, strlen(mbuf));
-    if (rv < 0) {
-        printf("Failed.\n");
-        // STUB: Use strerror()
-        fprintf(stderr, "ERROR: Failed to send data on the Unix socket.\n");
-        exit(1);
-    }
-    printf("Done.\n");
+    // (Conditionally) Setup the debug stream.
+    establish_debug_stream();
 
-
+    // Write invocation info to the debug stream.
+    fprintf(debug_fp, "Write events to      : %s\n", cmdline->sendto);
+    fprintf(debug_fp, "Poll target          : %s\n", cmdline->target);
+    fprintf(debug_fp, "Alarm args-threshold : %s\n", cmdline->args);
+    fflush(debug_fp);
     
-    while ( continue_loop )
+    // Setup the Unix socket.
+    init_unix_socket(cmdline->sendto);
+
+
+    if (0 > (pfd.fd = open(cmdline->target, O_RDWR | O_NONBLOCK)))
     {
-        // STUB: This is incompatible with the shutdown.
-        // STUB: The shutdown should probably just be handled in the signal handler.
-        sleep(3);
+        fprintf(stderr, "ERROR: open failure - %s\n", strerror(errno));
+        exit(1);
+    }
+    pfd.events = POLLPRI;
+
+    if (0 > write(pfd.fd, cmdline->args, strlen(cmdline->args) + 1))
+    {
+        fprintf(stderr, "ERROR: proc write failure - %s\n", strerror(errno));
+        exit(1);
+    }
+
+    while ( 1 )
+    {
+        poll_rv = poll(&pfd, 1, -1);
         
-
-
-
-        printf("Reporting heartbeat...");
-        snprintf(mbuf, BUFFER_SIZE, "HeartBeat");
-        printf(".");
-        rv = write(s, mbuf, strlen(mbuf));
-        if (rv < 0) {
-            printf("Failed.\n");
-            // STUB: Use strerror()
-            fprintf(stderr, "ERROR: Failed to send data on the Unix socket.\n");
+        if ( poll_rv < 0 )
+        {
+            fprintf(stderr, "ERROR: poll failed - %s\n", strerror(errno));
             exit(1);
         }
-        printf("Done.\n");
+
+        if (pfd.revents & POLLERR)
+        {
+            fprintf(stderr, "ERROR: got POLLERR, event source is gone\n");
+            exit(1);
+        }
         
+        if (pfd.revents & POLLPRI)
+        {
+            send_threshold_event();
+        }
+        else
+        {
+            fprintf(stderr, "ERROR: Unknown event received - 0x%x\n", pfd.revents);
+            exit(1);
+        }
+
+      
     }
 
-
+    // STUB: Unreachable.
 
 
 
 
     // STUB: Just exit for now.
-    close(s);
+    //close(s);
     exit(0);
 
 }
