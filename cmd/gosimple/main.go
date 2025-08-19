@@ -26,6 +26,8 @@ func main() {
 
 	defer gf.Close()
 
+	// I use the same value as the cpsi/test_run.sh test script. It is known to
+	// occasionally trigger on my dev system with these values.
 	trigger := []byte("some 15000 1000000")
 
 	_, err = gf.Write(trigger)
@@ -43,6 +45,13 @@ func main() {
 	}
 
 	for {
+		// +----- The C pollfd structure
+		// | +--- Only one in the array
+		// | | +- Five second timeout
+		// | | |
+		// | | +---------------+
+		// | +--------------+  |
+		// +----------V     V  V
 		prv := C.poll(&pfd, 1, 5000)
 
 		if prv == 0 {
@@ -59,14 +68,17 @@ func main() {
 			fmt.Println("HitThreshold")
 		} else {
 
-			// I get one of these on occasion that was 0.
-			// It might need to filtered out?
+			// I get one of these on occasion that was 0. This is likely
+			// associated with the (<0) return value that I fail to check for
+			// above.
+			// Possible approaches:
+			// - Simply filter it out?
+			// - Bring in errno and strerror() for reporting.
 
 			//fmt.Fprintf(os.Stderr, "ERROR: Unknown event received - 0x%x\n", pfd.revents)
 			//os.Exit(1)
 
 			fmt.Printf("UnknownEvent(0x%x)\n", pfd.revents)
 		}
-
 	}
 }
