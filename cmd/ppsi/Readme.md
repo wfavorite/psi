@@ -8,11 +8,11 @@ It is considered skeletal because...
 
 - It is PoC code.
 - What to launch/monitor would ideally be passed as a config, not hard-coded into the implementation.
-- The whole point of a Go calling framework is that Go can more easily plug into some sort of monitoring / alerting interface. This is not implemted (as, again, this is PoC code).
+- The whole point of a Go calling framework is that Go can more easily plug into some sort of monitoring / alerting interface. This is not implemented (as, again, this is PoC code).
 
 ## Usage
 
->> The ``cpsi`` monitor must exist (in the peer "cpsi" directory). This binary will attempt to launch client-monitors from that directory.
+> The ``cpsi`` monitor must exist (in the peer "cpsi" directory). This binary will attempt to launch client-monitors from that directory.
 
 Just call it:
 
@@ -29,6 +29,7 @@ First, the ideal design does NOT use client-monitors. A more appropriate design 
 - The ``cpsi`` binary should be embedded in the ``ppsi`` binary. It would be copied out to the local file system on invocation. (My build of ``cpsi`` is 23K).
 - The config of what to monitor would (ideally) be from a config file rather than compiled in. Even if the config was embedded, it is better than *coding* it in as is done here.
 - Threshold events would be raised to some sort of larger monitoring framework. (This is the point of using Go for reporting.)
+- The ``ppsi`` instance would need to be launched as / check for root or privilege elevate when calling ``cpsi`` as root-level permissions are required to monitor this interface.
 
 ## Findings / lessons learned
 
