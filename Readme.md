@@ -23,6 +23,10 @@ psi - Pressure reporter
 
 The ``psi`` tool is a simple monitor with basic ANSI colour representation of thresholds. Such tooling is appropriate for *investigating* a 'troubled' system. Such usage is an edge case and not representative of how best to watch these stats. The included PoC code is such an implementation - although skeletal in nature.
 
+The "full" values are far more important than the "some". *Someone* is likely to block frequently. It would be nice to filter out the some results or just ANSI threshold-colour just the full results. If ``psi`` were to get regular use (and not re-invent a wheel somewhere) this functionality could be added.
+
+The [``psi`` module](pkg/psi/) implements the output and ANSI colouring. This is probably not a proper approach (mixing output/representation with collection). There is some discussion about this in the top of the [PrintHeader.go](pkg/psi/PrintHeader.go) file.
+
 ## Other things
 
 > Like most things I have shared on github, the ``ppsi``/``cpsi`` and ``gosimple`` code is not intended for production use. If you want such tooling for production use - consider *hiring* me, and I will write/maintain/support such tooling for you.
@@ -33,7 +37,7 @@ The first 'spin' (``ppsi``/``cpsi``) involved writing a pure Go 'handler' and a 
 
 The second 'spin' was to add a C ``poll()`` function in an otherwise pure Go implementation using CGO compiled ``poll()`` call and a bit of help (although possibly unnecessary) from the syscall package.
 
-The third spin would be a properly daemonized & threaded Go/GCO monitor implementation - mixing the ``ppsi`` and ``gosimple`` variants.
+The third spin would be a properly daemonized & threaded Go/GCO monitor implementation - mixing the ``ppsi`` and ``gosimple`` variants. This would drop the framework-trigger (two binary) implementation and implement all monitors as threads connected to an Event Q that would raise the events into a larger monitoring solution.
 
 - First spin: [``ppsi``](cmd/ppsi/Readme.md) the Go 'framework' that calls the [``cpsi``](cmd/cpsi/Readme.md) C poll implementation. Lessons learned can be found in the ``ppsi`` [Readme](cmd/ppsi/Readme.md) document.
 - Second spin: [``gosimple``](cmd/gosimple/Readme.md) is a *very simple* CGO version of the example code in the PSI kernel.org documentation above.
