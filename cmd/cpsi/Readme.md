@@ -25,6 +25,8 @@ An example call:
 - Pass "stdout" as the Unix socket name. Events will be written to stdout, and not a Unix socket.
 - Define the ``CPSI_VERBOSE_BN`` variable. This is the basename of a log file that debug messages will be written to. A PID will be appended to the filename.
 
+I have included a [test_run.sh](test_run.sh) script to run in local test mode with a threshold likely to trigger on a lightly used dev system.
+
 ## Notes
 
 The most common failure is typically errno 22 on the write to the ``/proc/pressure/xxx`` file. When input values are out of bounds, the errno "Invalid argument" error is thrown.
