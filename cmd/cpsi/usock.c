@@ -29,45 +29,45 @@ void init_unix_socket(char *filename)
         return;
     }
 
-    fprintf(debug_fp, "Creating the socket..."); fflush(debug_fp);
+    log_printf("Creating the socket...");
     use_unix_socket = socket(AF_UNIX, SOCK_STREAM, 0);
     if (use_unix_socket < 0)
     {
-        fprintf(debug_fp, "Failed.\n"); fflush(debug_fp);
-        fprintf(stderr, "ERROR: socket failed - %s\n", strerror(errno));
+        log_printf("Failed.\n");
+        err_printf("ERROR: socket failed - %s\n", strerror(errno));
         exit(1);
     }
-    fprintf(debug_fp, "Done.\n"); fflush(debug_fp);
+    log_printf("Done.\n");
 
-    fprintf(debug_fp, "Connecting to the unix socket."); fflush(debug_fp);
+    log_printf("Connecting to the unix socket.");
     memset(&addr, 0, sizeof(struct sockaddr_un));
-    fprintf(debug_fp, "."); fflush(debug_fp);
+    log_printf(".");
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, filename, sizeof(addr.sun_path) - 1);
-    fprintf(debug_fp, "."); fflush(debug_fp);
+    log_printf(".");
 
     rv = connect(use_unix_socket,
         (const struct sockaddr *) &addr,
         sizeof(struct sockaddr_un));
 
     if (rv < 0) {
-        fprintf(debug_fp, "Failed.\n"); fflush(debug_fp);
-        fprintf(stderr, "ERROR: connect failed - %s\n", strerror(errno));
+        log_printf("Failed.\n");
+        err_printf("ERROR: connect failed - %s\n", strerror(errno));
         exit(1);
     }
-    fprintf(debug_fp, "Done.\n"); fflush(debug_fp);
+    log_printf("Done.\n");
 
-    printf("Reporting up..."); fflush(debug_fp);
+    log_printf("Reporting up...");
     snprintf(mbuf, BUFFER_SIZE, "ClientUp(%d)", getpid());
-    printf("."); fflush(debug_fp);
+    log_printf(".");
     rv = write(use_unix_socket, mbuf, strlen(mbuf));
     if (rv < 0)
     {
-        printf("Failed.\n"); fflush(debug_fp);
-        fprintf(stderr, "ERROR: Failed to send data on the Unix socket - %s\n", strerror(errno));
+        log_printf("Failed.\n");
+        err_printf("ERROR: Failed to send data on the Unix socket - %s\n", strerror(errno));
         exit(1);
     }
-    fprintf(debug_fp, "Done.\n"); fflush(debug_fp);
+    log_printf("Done.\n");
    
 }
 
@@ -76,6 +76,9 @@ void init_unix_socket(char *filename)
 void send_threshold_event(void)
 {
     int rv;
+
+    // 'Always' (conditionally) log it.
+    log_printf("ThresholdEvent\n");
 
     if ( use_unix_socket < 0 )
     {
@@ -88,36 +91,47 @@ void send_threshold_event(void)
     rv = write(use_unix_socket, mbuf, strlen(mbuf));
     if (rv < 0)
     {
-        fprintf(stderr, "ERROR: Failed Unix socket write - %s\n", strerror(errno));
+        err_printf("ERROR: Failed Unix socket write - %s\n", strerror(errno));
         exit(1);
     }
 }
 
+/* ======================================================================== */
 
+void send_heartbeat(void)
+{
+    int rv;
+
+    // 'Always' (conditionally) log it.
+    log_printf("HeartBeat\n");
+
+    if ( use_unix_socket < 0 )
+    {
+        printf("HeartBeat\n");
+        fflush(stdout);
+        return;
+    }
+
+    snprintf(mbuf, BUFFER_SIZE, "HeartBeat");
+    rv = write(use_unix_socket, mbuf, strlen(mbuf));
+    if (rv < 0)
+    {
+        err_printf("ERROR: Failed Unix socket write - %s\n", strerror(errno));
+        exit(1);
+    } 
+}
 
 /* ======================================================================== */
 
 void shutdown_socket(void)
 {
+    log_printf("Closing Unix socket...");
     if ( use_unix_socket < 0 )
+    {
+        log_printf("Skipped.\n");
         return;
+    }
 
     close(use_unix_socket);
+    log_printf("Done.\n");
 }
-
-
-
-  /*
-        printf("Reporting heartbeat...");
-        snprintf(mbuf, BUFFER_SIZE, "HeartBeat");
-        printf(".");
-        rv = write(s, mbuf, strlen(mbuf));
-        if (rv < 0) {
-            printf("Failed.\n");
-            // STUB: Use strerror()
-            fprintf(stderr, "ERROR: Failed to send data on the Unix socket.\n");
-            exit(1);
-        }
-        printf("Done.\n");
-        */
-        

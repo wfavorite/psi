@@ -7,43 +7,43 @@
 #include <signal.h>
 #include <poll.h>
 #include <errno.h>
-
+#include <time.h>
 
 #include "clargs.h"
 #include "usock.h"
 #include "debugstr.h"
 
+// How often to send heartbeats into the Unix socket / framework.
+#define HEARTBEAT_INTERVAL_SEC 60 * 5
+
 /*
     ToDo:
-    [ ] Make stdout/debug mode stdout 'consistent'.
+    [ ] Should have a version - that is reported in the debug log.
     [ ] Design standardized return values that can be used for observability.
-    [ ] Move to a Linux host and add the actual poll implementation.
-        (Currently written/running on Darwin.)
-    [ ] Should not write to stdout. Perhaps to syslog, or a local log?
-    [ ] The Unix socket path should probably be an environmental variable
-        (passed by the parent).
-    [ ] Find a more appropriate heartbeat time (or drop it).
-    
 
     Done:
+    [X] Write a readme - with usage info (as markdown).
+    [X] Find a more appropriate heartbeat time (or drop it).
+    [X] Consider wrapping all debug mesages. (A bit safer if the fp is NULL.)
+    [X] Make stdout/debug mode stdout 'consistent'.
+    [X] The Unix socket path should probably be an environmental variable
+        (passed by the parent).
+    [X] Should not write to stdout. Perhaps to syslog, or a local log?
+    [X] Move to a Linux host and add the actual poll implementation.
+        (Currently written/running on Darwin.)
     [X] Write a proper signal handler.
     [X] Accept the three arguments.
 */
-
-
 
 /* ======================================================================== */
 
 void TERM_handler(int sig)
 {
     shutdown_socket();
-    fprintf(debug_fp, "Monitor exiting.\n"); fflush(debug_fp);
-    fclose(debug_fp);
+    log_printf("Monitor exiting.\n"); 
+    close_debug_stream();
     exit(0);
 }
-
-
-
 
 /* ======================================================================== */
 
@@ -52,6 +52,9 @@ int main(int argc, char *argv[])
     CLArgs *cmdline;
     struct pollfd pfd;       /* One member array of pollfd for poll()       */
     int poll_rv;             /* poll() return value                         */
+    time_t now;              /* The latest time sampling                    */
+    time_t next_hb;          /* Next heartbeat time                         */
+    int ensave;
 
     // Register the signal handler.
     signal(SIGTERM, TERM_handler);
@@ -63,14 +66,14 @@ int main(int argc, char *argv[])
     if ( NULL == (cmdline = parse_cmdline(argc, argv)) )
     {
         // A true assert-level issue. (I just don't use assert() for the check.)
-        fprintf(stderr, "ASSERT: Failed to allocate memory during app start.\n");
+        err_printf("ASSERT: Failed to allocate memory during app start.\n");
         exit(1);
     }
 
     // Handle the command line (parsing) error - if one exists.
     if (cmdline->error[0] != 0)
     {
-        fprintf(stderr, "ERROR: %s\n", cmdline->error);
+        err_printf("ERROR: %s\n", cmdline->error);
         exit(1);
     }
 
@@ -78,41 +81,64 @@ int main(int argc, char *argv[])
     establish_debug_stream();
 
     // Write invocation info to the debug stream.
-    fprintf(debug_fp, "Write events to      : %s\n", cmdline->sendto);
-    fprintf(debug_fp, "Poll target          : %s\n", cmdline->target);
-    fprintf(debug_fp, "Alarm args-threshold : %s\n", cmdline->args);
-    fflush(debug_fp);
-    
+    log_printf("Write events to      : %s\n", cmdline->sendto);
+    log_printf("Poll target          : %s\n", cmdline->target);
+    log_printf("Alarm args-threshold : %s\n", cmdline->args);
+
     // Setup the Unix socket.
     init_unix_socket(cmdline->sendto);
 
-
+    log_printf("Opening the target file...");
     if (0 > (pfd.fd = open(cmdline->target, O_RDWR | O_NONBLOCK)))
     {
-        fprintf(stderr, "ERROR: open failure - %s\n", strerror(errno));
+        log_printf("Failed.\n");
+        err_printf("ERROR: open failure - %s\n", strerror(errno));
         exit(1);
     }
+    log_printf("Done.\n");
     pfd.events = POLLPRI;
 
+    log_printf("Writing event threshold to the target file...");
     if (0 > write(pfd.fd, cmdline->args, strlen(cmdline->args) + 1))
     {
-        fprintf(stderr, "ERROR: proc write failure - %s\n", strerror(errno));
+        ensave = errno;
+        log_printf("Failed.\n");
+        err_printf("ERROR: proc write failure - %s\n", strerror(ensave));
         exit(1);
     }
+    log_printf("Done.\n");
+
+    // Grab the time and set next heartbeat time.
+    time(&now);
+    next_hb = now + HEARTBEAT_INTERVAL_SEC;
 
     while ( 1 )
     {
-        poll_rv = poll(&pfd, 1, -1);
+        // 1000 is in milli (1 second).
+        poll_rv = poll(&pfd, 1, 1000);
         
         if ( poll_rv < 0 )
         {
-            fprintf(stderr, "ERROR: poll failed - %s\n", strerror(errno));
+            err_printf("ERROR: poll failed - %s\n", strerror(errno));
             exit(1);
+        }
+
+        if ( poll_rv == 0 )
+        {
+            // The poll() call timed out.
+            time(&now);
+            if ( now >= next_hb )
+            {
+                send_heartbeat();
+                // Set next heartbeat.
+                next_hb = now + HEARTBEAT_INTERVAL_SEC;
+            }
+            continue;
         }
 
         if (pfd.revents & POLLERR)
         {
-            fprintf(stderr, "ERROR: got POLLERR, event source is gone\n");
+            err_printf("ERROR: got POLLERR, event source is gone\n");
             exit(1);
         }
         
@@ -122,20 +148,10 @@ int main(int argc, char *argv[])
         }
         else
         {
-            fprintf(stderr, "ERROR: Unknown event received - 0x%x\n", pfd.revents);
+            err_printf("ERROR: Unknown event received - 0x%x\n", pfd.revents);
             exit(1);
         }
-
-      
     }
 
-    // STUB: Unreachable.
-
-
-
-
-    // STUB: Just exit for now.
-    //close(s);
-    exit(0);
-
+    // Unreachable.
 }

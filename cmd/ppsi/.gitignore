@@ -1,5 +1,6 @@
 # The binary
 ppsi
 
-# The observability file.
+# The observability files
 ppsi.observe.json
+cpsi.out.*

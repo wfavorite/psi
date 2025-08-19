@@ -169,6 +169,9 @@ func (cd *CoreData) processClientMessage(cc *ClientConn, msg string) {
 	case strings.HasPrefix(msg, "HeartBeat"):
 		cd.NewHeartbeatEvent(cc)
 
+	case strings.HasPrefix(msg, "ThresholdEvent"):
+		cd.NewThresholdEvent(cc)
+
 	default:
 		// STUB: Track these in stats and send to log
 		fmt.Printf("Client sent unknown data.\n")

@@ -118,6 +118,35 @@ func (evt *HeartbeatEvent) Handle() {
 
 /* ------------------------------------------------------------------------ */
 
+// ThresholdEvent is an event that we are watching for.
+type ThresholdEvent struct {
+	cd  *CoreData
+	cli *ClientConn
+}
+
+/* ======================================================================== */
+
+// NewThresholdEvent creates a new threshold exceeded for the specified client.
+func (cd *CoreData) NewThresholdEvent(cli *ClientConn) {
+
+	evt := new(ThresholdEvent)
+	evt.cd = cd
+	evt.cli = cli
+
+	cd.EvtQ.q <- evt
+}
+
+/* ======================================================================== */
+
+// Handle registers the hearbeat into the verbose logger.
+func (evt *ThresholdEvent) Handle() {
+
+	evt.cd.EvtQ.Stats["Threshold"]++
+	evt.cd.Logr.Verbose.Printf("Threshold exceeded trigger from pid %d.\n", evt.cli.PID)
+}
+
+/* ------------------------------------------------------------------------ */
+
 // ClientRegistrationEvent is when a new client connects to the system.
 type ClientRegistrationEvent struct {
 	cd  *CoreData
