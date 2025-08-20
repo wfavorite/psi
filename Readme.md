@@ -6,11 +6,12 @@ This repo is a (mostly) proper implementation of a ``/proc/pressure`` [PSI](http
 
 ## Contents
 
-- [psi](cmd/psi/Readme.md) - The closest thing to a 'production' tool in this repo. This relies on the [psi module](pkg/psi/).
-- [rpsi](cmd/rpsi/Readme.md) - A Rust port of the [Go psi](cmd/psi/Readme.md) utility.
-- [ppsi](cmd/ppsi/Readme.md) - The PoC PSI 'framework' that calls / utilizes the [cpsi](cmd/cpsi/Readme.md) C trigger component.
+- [psi](cmd/psi/Readme.md) - The closest thing to a 'production' tool in this repo. It is a iterative "monitor" much like ``iostat`` or ``vmstat``. It collects and displays data in ANSI colours based on pre-defined 'load' thresholds. This relies on the [go psi module](pkg/psi/).
+- [rpsi](cmd/rpsi/Readme.md) - A Rust port of the [Go psi](cmd/psi/Readme.md) utility. This is not a *polished* release of the tool, nor is it even *complete*, but it is a minimal implementation used to compare the Rust and Go development efforts.
+- [ppsi](cmd/ppsi/Readme.md) - The PoC PSI 'framework' that calls / utilizes the [cpsi](cmd/cpsi/Readme.md) C trigger component. This is an implementation of a monitoring design used to report into a centralized / higher level reporting and alerting tool. See notes on "spins" below.
 - [cpsi](cmd/cpsi/Readme.md) - The PoC PSI 'trigger' that is called / utilized by the [ppsi](cmd/ppsi/Readme.md) Go framework.
-- [gosimple](cmd/gosimple/Readme.md) - A simplified Go version of the C code found on the [PSI](https://www.kernel.org/doc/html/v5.4/accounting/psi.html) kernel documents page.
+- [gosimple](cmd/gosimple/Readme.md) - A simplified Go version of the C code found on the [PSI](https://www.kernel.org/doc/html/v5.4/accounting/psi.html) kernel documents page. This is closer to how a non-C implementation of a trigger might work. See notes on "spins" below.
+- [psi module](pkg/psi/) - A Go module implementing a PSI 'reader'. This is used by the Go [psi](cmd/psi/Readme.md) tool.
 
 ## Repo layout
 
