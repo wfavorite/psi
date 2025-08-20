@@ -27,3 +27,4 @@ Options:
 
 - This is not a full functional port (of the Go version) so comparing binary sizes and performance is not appropriate. (Although... the Rust version is considerably smaller - with *most* of the implementation complete.)
 - Build with ``cargo build --release`` from this directory.
+- You have to go external to get timestamps and JSON. Hmmmm.

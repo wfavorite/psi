@@ -43,7 +43,7 @@ func (si *StallInfo) headerWide(w io.Writer) {
 		fmt.Fprintf(w, " %-8s                                 ", "CPU")
 	}
 
-	if si.CPU != nil {
+	if si.IO != nil {
 		fmt.Fprintf(w, " %-8s                                 ", "IO")
 	}
 

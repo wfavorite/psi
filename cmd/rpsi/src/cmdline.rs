@@ -5,8 +5,9 @@ use std::env;
 pub struct CmdLine {
     opt_about: bool,
     opt_usage: bool,
-    opt_json:  bool,
+    opt_json: bool,
     opt_mono: bool,
+    opt_rando: bool, // Undocumented
     opt_tmstp: bool,
     opt_wide: bool,
     opt_iter: u64,
@@ -30,6 +31,10 @@ impl CmdLine {
 
     pub fn mono(&self) -> bool {
         self.opt_mono
+    }
+
+    pub fn rando(&self) -> bool {
+        self.opt_rando
     }
 
     pub fn tmstp(&self) -> bool {
@@ -56,11 +61,11 @@ impl CmdLine {
 /* ======================================================================== */
 
 pub fn parse_cmd_line() -> CmdLine {
-
     let mut opt_about = false;
     let mut opt_usage = false;
     let mut opt_json = false;
     let mut opt_mono = false;
+    let mut opt_rando = false;
     let mut opt_tmstp = false;
     let mut opt_wide = false;
     let mut opt_iter: u64 = 0;
@@ -74,7 +79,6 @@ pub fn parse_cmd_line() -> CmdLine {
     let args: Vec<String> = env::args().collect();
 
     for (i, arg) in args.iter().skip(1).enumerate() {
-        
         last_flag_pos = i as i32;
 
         // Save this... there needs to be a way to tell if an argument was the
@@ -88,6 +92,7 @@ pub fn parse_cmd_line() -> CmdLine {
             "-h" => opt_usage = true,
             "-j" => opt_json = true,
             "-m" => opt_mono = true,
+            "-r" => opt_rando = true,
             "-t" => opt_tmstp = true,
             "-w" => opt_wide = true,
             &_ => {
@@ -104,8 +109,7 @@ pub fn parse_cmd_line() -> CmdLine {
             // One was not a standard / expected argument...
             // but it may be a number.
 
-
-            /* Not using this 
+            /* Not using this
             if non_flag_arg.starts_with("-") {
                 opt_error = format!("The {} argument was not understood.", non_flag_arg);
             }
@@ -117,7 +121,9 @@ pub fn parse_cmd_line() -> CmdLine {
                 // This handles negative numbers (that look like flags) as well.
                 match non_flag_arg.parse::<u64>() {
                     Ok(num) => opt_iter = num,
-                    Err(_) => opt_error = format!("The {} argument was not understood.", non_flag_arg),
+                    Err(_) => {
+                        opt_error = format!("The {} argument was not understood.", non_flag_arg)
+                    }
                 }
             } else {
                 // It was not the last - so it is an error, regardless.
@@ -125,12 +131,13 @@ pub fn parse_cmd_line() -> CmdLine {
             }
         }
     }
-    
+
     CmdLine {
         opt_about: opt_about,
         opt_usage: opt_usage,
         opt_json: opt_json,
         opt_mono: opt_mono,
+        opt_rando: opt_rando,
         opt_tmstp: opt_tmstp,
         opt_wide: opt_wide,
         opt_iter: opt_iter,

@@ -19,12 +19,13 @@ package main
 					   reflections - and promise of more - but not enough
 					   for me to commit to reading the whole book.
 	0.4.0    14-8-25 - Output formatting changes and fixes.
+	0.4.1    20-8-25 - Fixed bug found during the Rust port.
 */
 
 /* ------------------------------------------------------------------------ */
 
 // VersionString must be commented.
-const VersionString = "0.4.0"
+const VersionString = "0.4.1"
 
 /* ------------------------------------------------------------------------ */
 /*

@@ -1,9 +1,12 @@
+use core::time;
+
 
 mod cmdline;
 mod clbasics;
 mod pressure;
 mod version;
 
+/* ======================================================================== */
 
 fn main() {
     
@@ -27,7 +30,21 @@ fn main() {
     }
 
     // Command line basics / early exits are over. We will be collecting data.
-    let mut data = pressure::init_pressure_data();
+
+    let mut opts = pressure::new_options();
+
+    // VOIR: This is an ugly hand-off but i think it is indicative of
+    // VOIR: cross-cutting concerns in tooling of this size. The goal is to
+    // VOIR: separate 'classes' but not incur the overly expensive cost of
+    // VOIR: doing so. This is quite possibly a Go-bias on my part. I should
+    // VOIR: also admit that the design of representation in the same class as
+    // VOIR: the collector is an anti-pattern (discussed in the Go port).
+    opts.set_debug_random(cl.rando());
+    opts.set_mono(cl.mono());
+    opts.set_timestamp(cl.tmstp());
+    opts.set_wide(cl.wide());
+
+    let mut data = opts.init_pressure_data();
     data.refresh();
 
     // This may be a single JSON dump.
@@ -38,13 +55,24 @@ fn main() {
         std::process::exit(0);
     }
 
-    // STUBbed from here
 
-    println!("Begin debug / non-implementation block");
-    println!("  -m(onochrome)    : {}", cl.mono());
-    println!("  -t(imestamp)     : {}", cl.tmstp());
-    println!("  -w(ide output)   : {}", cl.wide());
-    println!("  iteration value  : {}", cl.iter());
+
+    data.print_header();
+    data.print_line();
+
+    let iteration_time = cl.iter();
+    let sleep_time = time::Duration::from_secs(iteration_time);
+if iteration_time > 0 {
+    loop {
+        std::thread::sleep(sleep_time);
+
+        data.refresh();
+
+        data.print_line();
+
+    }
+}
+  
 
 
 }
